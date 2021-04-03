@@ -15,6 +15,9 @@ from tensorflow import nn
 from tensorflow import keras
 import numpy as np
 from IPython import display
+# 2021.04.03 修改
+sys.path.append("..")
+import d2lzh_tensorflow2 as d2l
 
 VOC_CLASSES = ['background', 'aeroplane', 'bicycle', 'bird', 'boat',
                'bottle', 'bus', 'car', 'cat', 'chair', 'cow',
@@ -256,8 +259,11 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
                 #print(Y,y)
                 y=tf.convert_to_tensor(y,dtype=tf.float32)
                 # 使用交叉熵损失计算平均分类误差
-                l = tf.reduce_mean(tf.losses.sparse_categorical_crossentropy(y,outputs))
-                
+                l = tf.reduce_mean(tf.losses.sparse_categorical_crossentropy(y,outputs,from_logits=True))  # 2021.04.03修改 ，增加 from_logits=True
+                '''该损失函数缺少参数 from_logits = True。在计算输出是没有使用激活函数softmax，
+                因此需要在损失函数上指定，即令from_logits = True。
+                '''
+
             grads = tape.gradient(l, params)
             grads= grad_clipping(grads,clipping_theta) # 梯度裁剪
             optimizer.apply_gradients(zip(grads, params))
@@ -287,7 +293,10 @@ class RNNModel(keras.layers.Layer):
     def call(self, inputs, state):
         # 将输入转置成(num_steps, batch_size)后获取one-hot向量表示
         X = tf.one_hot(tf.transpose(inputs), self.vocab_size)
-        Y,state = self.rnn(X, state)
+        # Y,state = self.rnn(X, state)   #2021.04.03  修改原代码
+        ans_list = self.rnn(X, state)
+        Y = ans_list[0]
+        state = ans_list[1:]
         # 全连接层会首先将Y的形状变成(num_steps * batch_size, num_hiddens)，它的输出
         # 形状为(num_steps * batch_size, vocab_size)
         output = self.dense(tf.reshape(Y,(-1, Y.shape[-1])))
@@ -320,7 +329,7 @@ def train_and_predict_rnn_keras(model, num_hiddens, vocab_size,
                                 corpus_indices, idx_to_char, char_to_idx,
                                 num_epochs, num_steps, lr, clipping_theta,
                                 batch_size, pred_period, pred_len, prefixes):
-    loss = tf.keras.losses.SparseCategoricalCrossentropy()
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)  # 2021.04.03 增加 from_logits=True
     optimizer=tf.keras.optimizers.SGD(learning_rate=lr)
     
     for epoch in range(num_epochs):
