@@ -420,7 +420,7 @@ def train_ch7(optimizer_fn, states, hyperparams, features, labels,
     plt.ylabel('loss')
     
     
-def train_tensorflow2_ch7(trainer_name, trainer_hyperparams, features, labels,
+def train_tensorflow2_ch7(trainer, trainer_hyperparams, features, labels,
                     batch_size=10, num_epochs=2):
     # 初始化模型
     net = tf.keras.Sequential()
